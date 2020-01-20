@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script src="d3.v5.min.js"></script>
+<script src="image-util.js"></script>
+<script src="stipple.js"></script>
+<script src="solver.js"></script>
+</head>
+<body>
+<canvas id="greyscale"></canvas>
+<canvas id="stipple"></canvas>
+</body>
+<script>
+
+async function run() {
+  // Init
+  const SIZE = 400;
+  const canvas = document.getElementById('greyscale');
+  const ctx = canvas.getContext('2d');
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+
+  const stippleCanvas = document.getElementById('stipple');
+  stippleCtx = stippleCanvas.getContext('2d');
+  stippleCanvas.width = SIZE;
+  stippleCanvas.height = SIZE;
+
+  // Load
+  const image = await ImageUtil.loadImage('einstein.png', { width: SIZE, height: SIZE });
+
+  // Greyscale
+  const greyScale = ImageUtil.flatten(image.data, { width: SIZE, height: SIZE });
+
+  // Rebuild greyscale
+  const imageData = ctx.createImageData(SIZE, SIZE);
+  for (let i = 0; i < greyScale.length; i ++) {
+    const v = greyScale[i] * 256;
+    imageData.data[4 * i + 0] = v;
+    imageData.data[4 * i + 1] = v;
+    imageData.data[4 * i + 2] = v;
+    imageData.data[4 * i + 3] = 255;
+  }
+  ctx.putImageData(imageData, 0 , 0);
+
+  // Stippling
+  const stippledData = stipple(greyScale, SIZE, SIZE, { sampleSize: 2 });
+  console.log('!!', stippledData);
+
+  // Test
+  /*
+  stippleCtx.beginPath();
+  stippleCtx.arc(200, 200, 30, 0, 2 * Math.PI, false);
+  stippleCtx.fillStyle = 'green';
+  stippleCtx.fill();
+  stippleCtx.stroke();
+  */
+
+  const drawPath = nearestNeighbour(stippledData.result);
+
+  //console.log('xyz', xyz);
+  //stippledData.result.forEach((d, i) => {
+  //  if (i > 8000) return;
+  //  stippleCtx.beginPath();
+  //  stippleCtx.arc(d.x, d.y, 0.5, 0, 2 * Math.PI, false);
+  //  stippleCtx.fillStyle = 'grey';
+  //  stippleCtx.fill();
+  //  stippleCtx.stroke();
+  //});
+
+  for (let i = 0; i < drawPath.length - 1; i ++) {
+    stippleCtx.beginPath();
+    stippleCtx.moveTo(drawPath[i].x, drawPath[i].y);
+    stippleCtx.lineTo(drawPath[i + 1].x, drawPath[i + 1].y);
+    stippleCtx.closePath();
+    stippleCtx.stroke();
+  }
+  
+/*
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.closePath();
+  ctx.stroke();
+*/
+
+}
+run();
+</script>
+</html>
