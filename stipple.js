@@ -3,7 +3,7 @@
  */
 function stipple(data, imageWidth, imageHeight, options) {
   const sampleSize = options.sampleSize || 1;
-  const sampleThreshold = options.sampleThreshold || 0.65;
+  const sampleThreshold = options.sampleThreshold || 1.0;
   const result = [];
 
   for (let y = 0; y < imageHeight; y+= sampleSize ) {
