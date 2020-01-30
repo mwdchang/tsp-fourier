@@ -15,9 +15,9 @@ html, body {
 <div style="display:flex; align-items: center">
 Select an image to process: 
 <select id="selection" onChange="changeImage()">
-  <option value="./sample-images/paris.jpg">Paris</option>
-  <option value="./sample-images/baobabs.jpg">Avenue of Baobabs</option>
-  <option value="./sample-images/cup.jpg">Cup</option>
+  <option value="./sample-images/paris.JPG">Paris</option>
+  <option value="./sample-images/baobabs.JPG">Avenue of Baobabs</option>
+  <option value="./sample-images/cup.JPG">Cup</option>
 </select>
 &nbsp;&nbsp;Stippling Threshold: 
 <input id="threshold" style="width: 300px" type="range" min="80" max="100" step="0.25" value="95" onChange="changeThreshold()">
@@ -33,20 +33,18 @@ Select an image to process:
 const SIZE = 300;
 
 // Control vars
-let currentImage = 'sample-images/paris.jpg';
+let currentImage = 'sample-images/paris.JPG';
 let threshold = 0.95;
 
 
 function changeImage() {
   const select = document.getElementById('selection');
-  console.log(select.options[select.selectedIndex]);
   currentImage = select.options[select.selectedIndex].value;
   run(currentImage);
 }
 function changeThreshold() {
   const thresholdSlider = document.getElementById('threshold');
   threshold = +thresholdSlider.value / 100;
-
   document.getElementById('threshold-value').innerHTML = threshold;
   run(currentImage);
 }
