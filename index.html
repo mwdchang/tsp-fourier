@@ -7,23 +7,39 @@
 <script src="solver.js"></script>
 </head>
 <body>
-<canvas id="greyscale"></canvas>
-<canvas id="stipple"></canvas>
+<canvas id="stage1"></canvas>
+<canvas id="stage2"></canvas>
+<canvas id="stage3"></canvas>
 </body>
 <script>
 
-async function run() {
-  // Init
-  const SIZE = 400;
-  const canvas = document.getElementById('greyscale');
-  const ctx = canvas.getContext('2d');
+const SIZE = 300;
+
+const canvasCtx = (id) => {
+  const canvas = document.getElementById(id);
   canvas.width = SIZE;
   canvas.height = SIZE;
+  return canvas.getContext('2d');
+}
 
-  const stippleCanvas = document.getElementById('stipple');
-  stippleCtx = stippleCanvas.getContext('2d');
-  stippleCanvas.width = SIZE;
-  stippleCanvas.height = SIZE;
+const drawSingleChannel = (ctx, data) => {
+  const imageData = ctx.createImageData(SIZE, SIZE);
+  for (let i = 0; i < data.length; i ++) {
+    const v = data[i] * 255;
+    imageData.data[4 * i + 0] = v;
+    imageData.data[4 * i + 1] = v;
+    imageData.data[4 * i + 2] = v;
+    imageData.data[4 * i + 3] = 255;
+  }
+  ctx.putImageData(imageData, 0 , 0);
+}
+
+
+async function run() {
+  // Init
+  const stage1Ctx = canvasCtx('stage1');
+  const stage2Ctx = canvasCtx('stage2');
+  const stage3Ctx = canvasCtx('stage3');
 
   // Load
   const image = await ImageUtil.loadImage('tree.jpeg', { width: SIZE, height: SIZE });
@@ -35,47 +51,39 @@ async function run() {
   const inverted = ImageUtil.invert(greyScale);
 
   // Blur
-  let blur = ImageUtil.convolve(inverted, { width: SIZE, height: SIZE, channels: 1 }, 
+  const blur = ImageUtil.convolve(inverted, { width: SIZE, height: SIZE, channels: 1 }, 
     ImageUtil.blur5x5
   );
 
-  const blah = ImageUtil.dodge(blur, greyScale);
-
-  const testImg = blah;
-  const realImg = greyScale;
-
-  // Rebuild greyscale
-  const imageData = ctx.createImageData(SIZE, SIZE);
-  for (let i = 0; i < realImg.length; i ++) {
-    const v = realImg[i] * 255;
-    imageData.data[4 * i + 0] = v;
-    imageData.data[4 * i + 1] = v;
-    imageData.data[4 * i + 2] = v;
-    imageData.data[4 * i + 3] = 255;
-  }
-  ctx.putImageData(imageData, 0 , 0);
+  // Dodge
+  const dodge = ImageUtil.dodge(blur, greyScale);
 
   // Stippling
-  const stippledData = stipple(testImg, SIZE, SIZE, { 
-    sampleSize: 2,
-    sampleThreshold: 0.94
+  const stippledData = stipple(dodge, SIZE, SIZE, { 
+    sampleSize: 1,
+    sampleThreshold: 0.85
   });
+
+  // Stage-1
+  drawSingleChannel(stage1Ctx, greyScale);
+
+  // Stage-2
+  drawSingleChannel(stage2Ctx, dodge);
 
 
   const drawPath = nearestNeighbour(stippledData.result);
-
   for (let i = 0; i < drawPath.length - 1; i ++) {
     const d = Math.sqrt(
       (drawPath[i + 1].x - drawPath[i].x) * (drawPath[i + 1].x - drawPath[i].x) +
       (drawPath[i + 1].y - drawPath[i].y) * (drawPath[i + 1].y - drawPath[i].y));
-    if (d > 30) continue;
+    if (d > 50) continue;
 
-    stippleCtx.beginPath();
-    stippleCtx.moveTo(drawPath[i].x, drawPath[i].y);
-    stippleCtx.lineTo(drawPath[i + 1].x, drawPath[i + 1].y);
+    stage3Ctx.beginPath();
+    stage3Ctx.moveTo(drawPath[i].x, drawPath[i].y);
+    stage3Ctx.lineTo(drawPath[i + 1].x, drawPath[i + 1].y);
 
-    stippleCtx.closePath();
-    stippleCtx.stroke();
+    stage3Ctx.closePath();
+    stage3Ctx.stroke();
   }
   
 }
