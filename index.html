@@ -4,6 +4,7 @@
 <script src="image-util.js"></script>
 <script src="stipple.js"></script>
 <script src="solver.js"></script>
+<script src="dft.js"></script>
 <style>
 html, body {
   font-family: Tahoma;
@@ -13,20 +14,27 @@ html, body {
 </head>
 <body>
 <div style="display:flex; align-items: center">
-Select an image to process: 
+Selectimage: 
 <select id="selection" onChange="changeImage()">
   <option value="./sample-images/paris.JPG">Paris</option>
   <option value="./sample-images/baobabs.JPG">Avenue of Baobabs</option>
   <option value="./sample-images/cup.JPG">Cup</option>
 </select>
 &nbsp;&nbsp;Stippling Threshold: 
-<input id="threshold" style="width: 300px" type="range" min="80" max="100" step="0.25" value="95" onChange="changeThreshold()">
+<input id="threshold" style="width: 250px" type="range" min="80" max="99" step="0.25" value="95" onChange="changeThreshold()">
+&nbsp;
 <div id="threshold-value">0.95</div>
+&nbsp;&nbsp;Dropped Terms: 
+<input id="resolution" style="width: 250px" type="range" min="0" max="2000" step="1" value="0" onChange="changeResolution()">
+&nbsp;
+<div id="resolution-value">0</div>
+
 </div>
 <br>
 <canvas id="stage1"></canvas>
 <canvas id="stage2"></canvas>
 <canvas id="stage3"></canvas>
+<canvas id="stage4"></canvas>
 </body>
 <script>
 
@@ -46,6 +54,12 @@ function changeThreshold() {
   const thresholdSlider = document.getElementById('threshold');
   threshold = +thresholdSlider.value / 100;
   document.getElementById('threshold-value').innerHTML = threshold;
+  run(currentImage);
+}
+function changeResolution() {
+  const resolutionSlider = document.getElementById('resolution');
+  resolution = +resolutionSlider.value; 
+  document.getElementById('resolution-value').innerHTML = resolution;
   run(currentImage);
 }
 
@@ -77,11 +91,50 @@ const drawImage = (ctx, data) => {
 }
 
 
+function epiCycles(x, y, rotation, series) {
+  for (let i = 0; i < series.length - resolution; i++) {
+    let prevx = x;
+    let prevy = y;
+    let freq = series[i].freq;
+    let radius = series[i].amp;
+    let phase = series[i].phase;
+    x += radius * Math.cos(freq * time + phase + rotation);
+    y += radius * Math.sin(freq * time + phase + rotation);
+
+    /*
+    if (radius > 4) {
+      context.strokeStyle = '#CCC';
+      context.beginPath();
+      context.arc(prevx, prevy, radius, 0, 2 * Math.PI, false);
+      context.stroke();
+      context.closePath();
+
+      context.strokeStyle = '#13B';
+      context.beginPath();
+      context.moveTo(prevx, prevy);
+      context.lineTo(x, y);
+      context.stroke();
+      context.closePath();
+    }
+    */
+  }
+  return { x, y };
+}
+
+
+// TSP
 let drawPath;
 let counter = 0;
-let counterInc = 3;
+let counterInc = 1;
 
-function sketch(ctx) {
+// Fourier
+let xPath; 
+let yPath;
+let time = 0;
+let fourierPath = [];
+let resolution = 0;
+
+function sketch(ctx, ctxFourier) {
   const skip = 1;
 
   if (counter + skip >= drawPath.length - 1) {
@@ -104,16 +157,60 @@ function sketch(ctx) {
     ctx.stroke();
   }
   counter += counterInc;
+
+
+  // Start Fourier stuff
+  let vx = epiCycles(0, 0, 0, xPath);
+  let vy = epiCycles(0, 0, 0.5 * Math.PI, yPath);
+  fourierPath.push({x: vx.x, y: vy.y });
+
+
+  ctxFourier.clearRect(0, 0, SIZE, SIZE);
+
+  // ctxFourier.strokeStyle = '#CCC';
+  // ctxFourier.beginPath();
+  // ctxFourier.moveTo(0, vy.y);
+  // ctxFourier.lineTo(SIZE, vy.y);
+
+  // ctxFourier.moveTo(vx.x, 0);
+  // ctxFourier.lineTo(vx.x, SIZE);
+  // ctxFourier.stroke();
+  // ctxFourier.closePath();
+
+
+  ctxFourier.beginPath();
+  ctxFourier.strokeStyle = '#0C8';
+  for (let i = 0; i < fourierPath.length; i++) {
+    if (i === 0) {
+      ctxFourier.moveTo(fourierPath[i].x, fourierPath[i].y);
+    } else {
+      ctxFourier.lineTo(fourierPath[i].x, fourierPath[i].y);
+    }
+  }
+  ctxFourier.stroke();
+  ctxFourier.closePath();
+
+
+  time += 2 * Math.PI / (drawPath.length / counterInc);
+  if (time > 2 * Math.PI) {
+    time = 0;
+    fourierPath = [];
+  }
+
   requestAnimationFrame(() => {
-    sketch(ctx);
+    sketch(ctx, ctxFourier);
   });
 }
 
 async function run(imageName) {
+  counter = 0;
+  time = 0;
+
   // Init
   const stage1Ctx = canvasCtx('stage1');
   const stage2Ctx = canvasCtx('stage2');
   const stage3Ctx = canvasCtx('stage3');
+  const stage4Ctx = canvasCtx('stage4');
 
   // Load
   const image = await ImageUtil.loadImage(imageName, { width: SIZE, height: SIZE });
@@ -150,9 +247,18 @@ async function run(imageName) {
   // Stage-3
   drawPath = nearestNeighbour(stippledData.result);
 
+  // Stage-4: Fourier
+  xPath = DFT(drawPath.map(d => d.x));
+  yPath = DFT(drawPath.map(d => d.y));
+
+  xPath.sort((a, b) => b.amp - a.amp);
+  yPath.sort((a, b) => b.amp - a.amp);
+
+
   requestAnimationFrame(() => {
-    sketch(stage3Ctx);
+    sketch(stage3Ctx, stage4Ctx);
   });
+
 }
 
 run(currentImage);
