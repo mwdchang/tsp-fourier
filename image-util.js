@@ -107,8 +107,8 @@ class ImageUtil {
     const channels = options.channels;
 
     // pad output by the convolution matrix
-    var w = sw;
-    var h = sh;
+    const w = sw;
+    const h = sh;
 
     const result = [];
     // go through the destination image pixels
@@ -122,16 +122,16 @@ class ImageUtil {
         }
 
         // Not well defined around edges
-        if (y - halfSide < 0 || y + halfSide >= h || x - halfSide < 0 || x + halfSide >= w) {
-          for (let c = 0; c < channels; c++) {
-            ch[c] = data[(y * w + x) * channels];
-          }
-        }
+        // if (y - halfSide < 0 || y + halfSide >= h || x - halfSide < 0 || x + halfSide >= w) {
+        //   for (let c = 0; c < channels; c++) {
+        //     ch[c] = data[(x * w + y) * channels];
+        //   }
+        // }
 
         for (let cy = 0; cy < side; cy++) {
           for (let cx = 0; cx < side; cx++) {
-            var scy = y + cy - halfSide;
-            var scx = x + cx - halfSide;
+            const scy = y + cy - halfSide;
+            const scx = x + cx - halfSide;
             if (scy >= 0 && scy < sh && scx >= 0 && scx < sw) {
               let srcOff = (scy * sw + scx) * channels;
               let wt = weights[cy * side + cx];
@@ -139,22 +139,14 @@ class ImageUtil {
               for (let c = 0; c < channels; c++) {
                 ch[c] += data[srcOff + c] * wt;
               }
-
-              /*
-              r += data[srcOff] * wt;
-              g += data[srcOff+1] * wt;
-              b += data[srcOff+2] * wt;
-              a += data[srcOff+3] * wt;
-              */
+            } else {
+              // Not great ... but does the job
+              for (let c = 0; c < channels; c++) {
+                ch[c] += data[(y * w + x) * channels] * ( 1/ weights.length) * 0.28;
+              }
             }
           }
         }
-        /*
-        dst[dstOff] = r;
-        dst[dstOff + 1] = g;
-        dst[dstOff + 2] = b;
-        dst[dstOff + 3] = a;
-        */
         for (let c = 0; c < channels; c++) {
           result.push(ch[c]);
         }

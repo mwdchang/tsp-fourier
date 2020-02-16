@@ -10,31 +10,69 @@ html, body {
   font-family: Tahoma;
   font-size: 90%;
 }
+
+.control {
+  height: 58px;
+}
 </style>
 </head>
 <body>
-<div style="display:flex; align-items: center">
-Selectimage: 
-<select id="selection" onChange="changeImage()">
-  <option value="./sample-images/paris.JPG">Paris</option>
-  <option value="./sample-images/baobabs.JPG">Avenue of Baobabs</option>
-  <option value="./sample-images/cup.JPG">Cup</option>
-</select>
-&nbsp;&nbsp;Stippling Threshold: 
-<input id="threshold" style="width: 250px" type="range" min="80" max="99" step="0.25" value="95" onChange="changeThreshold()">
-&nbsp;
-<div id="threshold-value">0.95</div>
-&nbsp;&nbsp;Dropped Terms: 
-<input id="resolution" style="width: 250px" type="range" min="0" max="2000" step="1" value="0" onChange="changeResolution()">
-&nbsp;
-<div id="resolution-value">0</div>
+<div style="display:flex; flex-direction:row; align-items: center; justify-content: space-between">
+  <div>
+    <div class="control">
+      Raw Images<br>
+      Select: 
+      <select id="selection" onChange="changeImage()">
+        <option value="./sample-images/paris.JPG">Paris</option>
+        <option value="./sample-images/baobabs.JPG">Avenue of Baobabs</option>
+        <option value="./sample-images/cup.JPG">Cup</option>
+      </select>
+    </div>
+    <canvas id="stage1"></canvas>
+  </div>
+
+  <div>
+    <div class="control">
+      Masks
+      <div style="display: flex; align-items: centre">
+        Blur: <input id="blur" style="width: 120px" type="range">
+      </div>
+    </div>
+    <canvas id="stage2"></canvas>
+  </div>
+
+  <div>
+    <div class="control">
+      TSP 
+      <div style="display: flex; align-items: centre">
+        Stipple Threshold: 
+        <input id="threshold" style="width: 120px" type="range" min="80" max="99" step="0.25" value="95" onChange="changeThreshold()">
+        &nbsp;
+        <span id="threshold-value">0.95</span>
+      </div>
+      <div style="display: flex; align-items: centre">
+        Sampling
+      </div>
+    </div>
+
+    <canvas id="stage3"></canvas>
+  </div>
+
+  <div>
+    <div class="control">
+      Fourier
+      <div style="display: flex; align-items: centre">
+        Dropping: 
+        <input id="resolution" style="width: 120px" type="range" min="0" max="2000" step="1" value="0" onChange="changeResolution()">
+        &nbsp;
+        <span id="resolution-value">0</span>
+      </div>
+    </div>
+    <canvas id="stage4"></canvas>
+  </div>
 
 </div>
 <br>
-<canvas id="stage1"></canvas>
-<canvas id="stage2"></canvas>
-<canvas id="stage3"></canvas>
-<canvas id="stage4"></canvas>
 </body>
 <script>
 
@@ -222,27 +260,31 @@ async function run(imageName) {
   const inverted = ImageUtil.invert(greyScale);
 
   // Blur
-  const blur = ImageUtil.convolve(inverted, { width: SIZE, height: SIZE, channels: 1 }, 
+  let blur = ImageUtil.convolve(inverted, { width: SIZE, height: SIZE, channels: 1 }, 
     // ImageUtil.blur5x5
     ImageUtil.blurGaussian
   );
+  for (let i = 0; i < 5; i++) {
+    blur = ImageUtil.convolve(blur, { width: SIZE, height: SIZE, channels: 1 }, 
+      ImageUtil.blurGaussian
+    );
+  }
 
   // Dodge
   const dodge = ImageUtil.dodge(blur, greyScale);
 
   // Stippling
   const stippledData = stipple(dodge, SIZE, SIZE, { 
-    sampleSize: 1,
+    sampleSize: 2,
     // sampleThreshold: 0.85 // tree
     sampleThreshold: threshold
   });
 
   // Stage-1
-  // drawSingleChannel(stage1Ctx, greyScale);
   drawImage(stage1Ctx, image);
 
   // Stage-2
-  drawSingleChannel(stage2Ctx, blur);
+  drawSingleChannel(stage2Ctx, dodge);
 
   // Stage-3
   drawPath = nearestNeighbour(stippledData.result);
