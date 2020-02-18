@@ -35,7 +35,10 @@ html, body {
     <div class="control">
       Masks
       <div style="display: flex; align-items: centre">
-        Blur: <input id="blur" style="width: 120px" type="range">
+        Blur: 
+        <input id="blur" style="width: 120px" min="1" max="15" step="1" value="2" type="range" onChange="changeBlurAmount()">
+        &nbsp;
+        <span id="blur-value">2</span>
       </div>
     </div>
     <canvas id="stage2"></canvas>
@@ -63,16 +66,19 @@ html, body {
       Fourier
       <div style="display: flex; align-items: centre">
         Dropping: 
-        <input id="resolution" style="width: 120px" type="range" min="0" max="2000" step="1" value="0" onChange="changeResolution()">
+        <input id="resolution" style="width: 120px" type="range" min="0" max="0.8" step="0.05" value="0" onChange="changeResolution()">
         &nbsp;
         <span id="resolution-value">0</span>
       </div>
     </div>
     <canvas id="stage4"></canvas>
   </div>
-
 </div>
 <br>
+<div>
+  <div>
+    Animate <input type="checkbox" checked>
+</div>
 </body>
 <script>
 
@@ -98,6 +104,12 @@ function changeResolution() {
   const resolutionSlider = document.getElementById('resolution');
   resolution = +resolutionSlider.value; 
   document.getElementById('resolution-value').innerHTML = resolution;
+  run(currentImage);
+}
+function changeBlurAmount() {
+  const blurSlider = document.getElementById('blur');
+  blurAmount = +blurSlider.value; 
+  document.getElementById('blur-value').innerHTML = blurAmount;
   run(currentImage);
 }
 
@@ -130,7 +142,8 @@ const drawImage = (ctx, data) => {
 
 
 function epiCycles(x, y, rotation, series) {
-  for (let i = 0; i < series.length - resolution; i++) {
+  const dropped = Math.floor(series.length * resolution);
+  for (let i = 0; i < series.length - dropped; i++) {
     let prevx = x;
     let prevy = y;
     let freq = series[i].freq;
@@ -158,6 +171,12 @@ function epiCycles(x, y, rotation, series) {
   }
   return { x, y };
 }
+
+// global
+let animate = true;
+
+// Masks
+let blurAmount = 2;
 
 
 // TSP
@@ -243,6 +262,7 @@ function sketch(ctx, ctxFourier) {
 async function run(imageName) {
   counter = 0;
   time = 0;
+  fourierPath = [];
 
   // Init
   const stage1Ctx = canvasCtx('stage1');
@@ -260,11 +280,8 @@ async function run(imageName) {
   const inverted = ImageUtil.invert(greyScale);
 
   // Blur
-  let blur = ImageUtil.convolve(inverted, { width: SIZE, height: SIZE, channels: 1 }, 
-    // ImageUtil.blur5x5
-    ImageUtil.blurGaussian
-  );
-  for (let i = 0; i < 5; i++) {
+  let blur = inverted;
+  for (let i = 0; i < blurAmount; i++) {
     blur = ImageUtil.convolve(blur, { width: SIZE, height: SIZE, channels: 1 }, 
       ImageUtil.blurGaussian
     );
