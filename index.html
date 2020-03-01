@@ -141,7 +141,7 @@ const drawImage = (ctx, data) => {
 }
 
 
-function epiCycles(x, y, rotation, series) {
+function epiCycles(x, y, rotation, series, time) {
   const dropped = Math.floor(series.length * resolution);
   for (let i = 0; i < series.length - dropped; i++) {
     let prevx = x;
@@ -172,6 +172,18 @@ function epiCycles(x, y, rotation, series) {
   return { x, y };
 }
 
+function generateFourierPath(xPath, yPath) {
+  let time = 0;
+  const result = [];
+  while (time <= 2 * Math.PI) {
+    const vx = epiCycles(0, 0, 0, xPath, time);
+    const vy = epiCycles(0, 0, 0.5 * Math.PI, yPath, time);
+    result.push({x: vx.x, y: vy.y });
+    time += 2 * Math.PI / (drawPath.length / counterInc);
+  }
+  return result;
+}
+
 // global
 let animate = true;
 
@@ -180,7 +192,7 @@ let blurAmount = 2;
 
 
 // TSP
-let drawPath;
+let drawPath = [];
 let counter = 0;
 let counterInc = 1;
 
@@ -217,27 +229,12 @@ function sketch(ctx, ctxFourier) {
 
 
   // Start Fourier stuff
-  let vx = epiCycles(0, 0, 0, xPath);
-  let vy = epiCycles(0, 0, 0.5 * Math.PI, yPath);
-  fourierPath.push({x: vx.x, y: vy.y });
-
-
   ctxFourier.clearRect(0, 0, SIZE, SIZE);
-
-  // ctxFourier.strokeStyle = '#CCC';
-  // ctxFourier.beginPath();
-  // ctxFourier.moveTo(0, vy.y);
-  // ctxFourier.lineTo(SIZE, vy.y);
-
-  // ctxFourier.moveTo(vx.x, 0);
-  // ctxFourier.lineTo(vx.x, SIZE);
-  // ctxFourier.stroke();
-  // ctxFourier.closePath();
-
 
   ctxFourier.beginPath();
   ctxFourier.strokeStyle = '#0C8';
-  for (let i = 0; i < fourierPath.length; i++) {
+  // for (let i = 0; i < fourierPath.length; i++) {
+  for (let i = 0; i < counter; i += skip) {
     if (i === 0) {
       ctxFourier.moveTo(fourierPath[i].x, fourierPath[i].y);
     } else {
@@ -246,13 +243,6 @@ function sketch(ctx, ctxFourier) {
   }
   ctxFourier.stroke();
   ctxFourier.closePath();
-
-
-  time += 2 * Math.PI / (drawPath.length / counterInc);
-  if (time > 2 * Math.PI) {
-    time = 0;
-    fourierPath = [];
-  }
 
   requestAnimationFrame(() => {
     sketch(ctx, ctxFourier);
@@ -312,7 +302,8 @@ async function run(imageName) {
 
   xPath.sort((a, b) => b.amp - a.amp);
   yPath.sort((a, b) => b.amp - a.amp);
-
+  fourierPath = generateFourierPath(xPath, yPath);
+  console.log('fourier', fourierPath);
 
   requestAnimationFrame(() => {
     sketch(stage3Ctx, stage4Ctx);
