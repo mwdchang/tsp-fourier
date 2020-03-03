@@ -11,6 +11,23 @@ html, body {
   font-size: 90%;
 }
 
+.button {
+  display: inline-block;
+  padding: 5px;
+  background: #369;
+  font-size: 110%;
+  margin-left: 10px;
+  min-width: 50px;
+  border-radius: 4px;
+  border: 1px solid #CCC;
+  color: #EEE;
+}
+
+.button:hover {
+  background: #58B;
+  cursor: pointer;
+}
+
 .control {
   height: 58px;
 }
@@ -46,7 +63,7 @@ html, body {
 
   <div>
     <div class="control">
-      TSP 
+      TSP-Render
       <div style="display: flex; align-items: centre">
         Stipple Threshold: 
         <input id="threshold" style="width: 120px" type="range" min="80" max="99" step="0.25" value="95" onChange="changeThreshold()">
@@ -63,7 +80,7 @@ html, body {
 
   <div>
     <div class="control">
-      Fourier
+      Fourier-Render
       <div style="display: flex; align-items: centre">
         Dropping: 
         <input id="resolution" style="width: 120px" type="range" min="0" max="0.8" step="0.05" value="0" onChange="changeResolution()">
@@ -76,8 +93,12 @@ html, body {
 </div>
 <br>
 <div>
-  <div>
-    Animate <input type="checkbox" checked>
+  <hr>
+  Controls:
+  <div class="button" id="animate-button" onClick="toggleAnimate()">
+    Pause
+  </div>
+  <hr>
 </div>
 </body>
 <script>
@@ -111,6 +132,15 @@ function changeBlurAmount() {
   blurAmount = +blurSlider.value; 
   document.getElementById('blur-value').innerHTML = blurAmount;
   run(currentImage);
+}
+function toggleAnimate() {
+  const animateElem = document.getElementById('animate-button');
+  animate = !animate;
+  if (animate) {
+    animateElem.innerHTML = 'Pause';
+  } else {
+    animateElem.innerHTML = 'Play';
+  }
 }
 
 
@@ -225,7 +255,10 @@ function sketch(ctx, ctxFourier) {
     ctx.closePath();
     ctx.stroke();
   }
-  counter += counterInc;
+
+  if (animate) {
+    counter += counterInc;
+  }
 
 
   // Start Fourier stuff
