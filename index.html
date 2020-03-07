@@ -299,6 +299,9 @@ async function run(imageName) {
   // Greyscale
   const greyScale = ImageUtil.flatten(image.data, { width: SIZE, height: SIZE });
 
+  // Sobel - test
+  const sobel = ImageUtil.sobel(greyScale, { width: SIZE, height: SIZE, channels: 1 });
+
   // Invert
   const inverted = ImageUtil.invert(greyScale);
 

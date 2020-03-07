@@ -156,6 +156,27 @@ class ImageUtil {
   };
 
 
+  // Should use with channel = 1
+  static sobel(data, options) {
+    const gx = [-1,  0,  1, -2, 0, 2, -1, 0, 1];
+	  const gy = [-1, -2, -1,  0, 0, 0,  1, 2, 1];
+
+    const gxResult = this.convolve(data, options, gx);
+    const gyResult = this.convolve(data, options, gy);
+
+    console.log('length', gxResult.length);
+    console.log('length', gyResult.length);
+
+    // Join
+    const r = [];
+    for (let i = 0; i < gxResult.length; i++) {
+      const v = Math.sqrt( gxResult[i] * gxResult[i] + gyResult[i] * gyResult[i]);
+      r.push(Math.min(1.0, v));
+    }
+    return r;
+  }
+
+
   static blurGaussian = [
     0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067,
     0.00002292,0.00078633,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292,
